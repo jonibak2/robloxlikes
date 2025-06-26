@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Steal a brainrot likes</title>
+    <style>
+      body {
+        margin: 0;
+        background: #121212;
+        color: #fafafa;
+        font-family: system-ui, sans-serif;
+        text-align: center;
+        padding: 2rem;
+      }
+      .container {
+        margin: 2rem auto;
+      }
+      .count {
+        font-size: 4rem;
+        font-weight: bold;
+      }
+      .label {
+        font-size: 1.2rem;
+        opacity: 0.7;
+      }
+      #goals ul {
+        list-style: none;
+        padding: 0;
+        margin-top: 1rem;
+      }
+      #goals li {
+        font-size: 1rem;
+        margin: 0.2rem 0;
+      }
+      #notification {
+        margin-top: 1.5rem;
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #0f0;
+        min-height: 2em;
+      }
+      #notifyBtn {
+        position: fixed;
+        bottom: 10px;
+        right: 10px;
+        background: #282828;
+        color: #fafafa;
+        border: none;
+        border-radius: 4px;
+        padding: 6px 12px;
+        font-size: 0.9rem;
+        cursor: pointer;
+        opacity: 0.7;
+        transition: opacity 0.3s ease;
+        z-index: 1100;
+      }
+      #notifyBtn:hover {
+        opacity: 1;
+      }
+
+      #videoNotification {
+        display: none;
+        position: fixed;
+        bottom: 60px;
+        right: 10px;
+        width: 320px;
+        height: 180px;
+        background: black;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 0 15px red;
+        z-index: 1200;
+      }
+      #videoNotification iframe {
+        width: 100%;
+        height: 100%;
+        border: none;
+      }
+      #videoCloseBtn {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        background: rgba(255, 0, 0, 0.3);
+        color: white;
+        border: none;
+        padding: 4px 10px;
+        font-weight: bold;
+        font-size: 0.85rem;
+        cursor: pointer;
+        border-radius: 4px;
+        transition: background-color 0.3s ease;
+        z-index: 1300;
+      }
+      #videoCloseBtn:hover {
+        background: rgba(255, 0, 0, 0.8);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="count" id="likes">…</div>
+      <div class="label">👍 Likes</div>
+      <div id="likes-updated" style="font-size: 0.9rem; color: #aaa"></div>
+      <div id="likes-changed" style="font-size: 0.9rem; color: #aaa"></div>
+      <link rel="icon" type="image/png" href="icon.png" />
+    </div>
+    <div class="container">
+      <div class="count" id="players">…</div>
+      <div class="label">🟢 Online Now</div>
+    </div>
+
+    <div class="container" id="goals">
+      <div>Цели по лайкам:</div>
+      <ul id="goalList"></ul>
+    </div>
+
+    <div id="notification"></div>
+    <button id="notifyBtn">Уведомить</button>
+
+    <div id="videoNotification">
+      <iframe id="ytPlayer" allow="autoplay"></iframe>
+      <button id="videoCloseBtn">ВЫКЛЮЧИТЬ</button>
+    </div>
+    <a
+      href="https://github.com/jonibak2"
+      target="_blank"
+      style="position: fixed; bottom: 10px; left: 10px; z-index: 999"
+    >
+      <img
+        src="github.png"
+        alt="GitHub"
+        width="64"
+        height="64"
+        style="width: 64px; height: 64px"
+      />
+    </a>
+
+    <script>
+      const universeId = "7709344486";
+      const proxy = "https://api.allorigins.win/raw?url=";
+      const baseUrl = "https://games.roblox.com";
+      let lastLikes = 0;
+      let firstLoad = true;
+
+      const baseGoal = 1500000;
+      const step = 20000;
+      const goalCount = 5;
+      const goals = Array.from(
+        { length: goalCount },
+        (_, i) => baseGoal + i * step
+      );
+      let lastNotifiedGoal = 0;
+
+      const ytPlayer = document.getElementById("ytPlayer");
+      const videoBox = document.getElementById("videoNotification");
+
+      function renderGoals() {
+        const goalList = document.getElementById("goalList");
+        goalList.innerHTML = "";
+        goals.forEach((goal) => {
+          const li = document.createElement("li");
+          li.textContent = goal.toLocaleString();
+          li.id = `goal-${goal}`;
+          goalList.appendChild(li);
+        });
+      }
+
+      function highlightGoal(goal) {
+        goals.forEach((g) => {
+          const li = document.getElementById(`goal-${g}`);
+          if (!li) return;
+          if (g <= goal) {
+            li.style.color = "#0f0";
+            li.style.fontWeight = "bold";
+          } else {
+            li.style.color = "";
+            li.style.fontWeight = "";
+          }
+        });
+      }
+
+      function showNotification(msg) {
+        document.getElementById("notification").textContent = msg;
+        showVideoNotification();
+        setTimeout(() => {
+          document.getElementById("notification").textContent = "";
+        }, 5000);
+      }
+
+      function showVideoNotification() {
+        videoBox.style.display = "block";
+        // YouTube embed URL with autoplay
+        ytPlayer.src =
+          "https://www.youtube.com/embed/v2-OP8GvYUo?autoplay=1&controls=0&modestbranding=1&rel=0";
+      }
+
+      function hideVideoNotification() {
+        ytPlayer.src = ""; // Очищаем чтобы остановить видео
+        videoBox.style.display = "none";
+      }
+
+      document
+        .getElementById("videoCloseBtn")
+        .addEventListener("click", hideVideoNotification);
+      document.getElementById("notifyBtn").addEventListener("click", () => {
+        showNotification("🔔 Тестовое уведомление!");
+      });
+
+      function formatTime(t) {
+        const pad = (n) => n.toString().padStart(2, "0");
+        return `${pad(t.getHours())}:${pad(t.getMinutes())}:${pad(
+          t.getSeconds()
+        )}`;
+      }
+
+      async function fetchLikes() {
+        try {
+          const res = await fetch(
+            proxy +
+              encodeURIComponent(
+                `${baseUrl}/v1/games/votes?universeIds=${universeId}`
+              )
+          );
+          const json = await res.json();
+          const likes = json.data?.[0]?.upVotes;
+          if (likes !== undefined) {
+            document.getElementById("likes").textContent =
+              likes.toLocaleString();
+
+            const now = new Date();
+            document.getElementById(
+              "likes-updated"
+            ).textContent = `🕓 обновлено: ${formatTime(now)}`;
+
+            if (firstLoad) {
+              lastLikes = likes;
+              highlightGoal(likes);
+              firstLoad = false;
+            } else {
+              if (likes !== lastLikes) {
+                document.getElementById(
+                  "likes-changed"
+                ).textContent = `🔁 изменилось: ${formatTime(now)}`;
+              }
+              checkGoals(lastLikes, likes);
+              lastLikes = likes;
+            }
+          }
+        } catch (e) {
+          document.getElementById("likes").textContent = "⚠️";
+        }
+      }
+
+      async function fetchOnline() {
+        try {
+          const res = await fetch(
+            proxy +
+              encodeURIComponent(
+                `${baseUrl}/v1/games?universeIds=${universeId}`
+              )
+          );
+          const json = await res.json();
+          const playing = json.data?.[0]?.playing;
+          if (playing !== undefined) {
+            document.getElementById("players").textContent =
+              playing.toLocaleString();
+          }
+        } catch (e) {
+          document.getElementById("players").textContent = "⚠️";
+        }
+      }
+
+      function checkGoals(prev, current) {
+        for (let goal of goals) {
+          if (prev < goal && current >= goal) {
+            lastNotifiedGoal = goal;
+            showNotification(
+              `🎉 Цель достигнута — ${goal.toLocaleString()} лайков!`
+            );
+            highlightGoal(goal);
+            break;
+          }
+        }
+      }
+
+      async function update() {
+        await Promise.all([fetchLikes(), fetchOnline()]);
+      }
+
+      renderGoals();
+      update();
+      setInterval(update, 10000);
+    </script>
+  </body>
+</html>
